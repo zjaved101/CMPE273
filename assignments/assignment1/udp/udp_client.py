@@ -6,7 +6,6 @@ import argparse
 UDP_IP = '127.0.0.1'
 UDP_PORT = 4000
 BUFFER_SIZE = 1024
-# BUFFER_SIZE = 4096
 MESSAGE = "ping"
 FILE = "upload.txt"
 
@@ -26,10 +25,6 @@ def get_client_id():
 
 def sendMessage(udpSocket, id, sequence, message):
     udpSocket.sendto(f"{id}.{sequence}.{message}".encode(), (UDP_IP, UDP_PORT))
-    # data = bytearray("{}.{}.".format(id,sequence).encode())
-    # print(message)
-    # data.extend(bytearray(message))
-    # udpSocket.sendto(data, (UDP_IP, UDP_PORT))
 
 def receiveMessage(udpSocket):
     data, ip = udpSocket.recvfrom(BUFFER_SIZE)
@@ -57,7 +52,6 @@ def main():
         with open(FILE, "r") as f:
             print("Starting a file (%s) upload..." % FILE)
             fileData = f.read(BUFFER_SIZE)
-            # data = f.read(128)
             sequence = 1
             while fileData:
                 sendMessage(s, id, sequence, fileData)

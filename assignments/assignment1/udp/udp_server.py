@@ -4,7 +4,6 @@ import os
 
 UDP_IP = '127.0.0.1'
 UDP_PORT = 4000
-# BUFFER_SIZE = 1024
 BUFFER_SIZE = 4096
 MESSAGE = "pong"
 FILE_DATA = {}
@@ -15,20 +14,11 @@ def writeDataToFile(id):
     if not os.path.exists("output"):
         os.mkdir("output")
 
-    # print(FILE_DATA[id])
     with open("output/%s" % FILE, 'wb') as f:
         for data in FILE_DATA[id]["data"]:
             f.write(data.encode())
-            # f.write(data)
 
 async def handleClient(udpSocket, ip, data):
-    # print("{}: {}".format(ip, data.decode(encoding="utf-8").strip()))
-    # split = data.decode().split(':')
-    # udpSocket.sendto(':'.join(split[0:2]).encode(), ip)
-
-    # print(data)
-    # print(type(data))
-    # if isinstance(data, bytes):
     split = data.decode('utf-8').split('.')
     id = split[0]
     # acknowledgement to client that server is alive
@@ -45,10 +35,6 @@ async def handleClient(udpSocket, ip, data):
         del FILE_DATA[id]
         return
 
-    # if isinstance(data, bytearray):
-        # print("BYTEARRAY")
-    # split = data[0].decode().split('+')
-    # id = split[0]
     if id not in FILE_DATA:
         print("Accepting file upload from client: %s" % id)
         FILE_DATA[id] = {"data" : [], "sequence" : 0}
@@ -58,7 +44,6 @@ async def handleClient(udpSocket, ip, data):
         FILE_DATA[id]["data"].append(split[2])
         FILE_DATA[id]["sequence"] = int(split[1])
     
-    # udpSocket.sendto(':'.join(split[0:2]).encode(), ip)
     udpSocket.sendto("{}:{}".format(id, FILE_DATA[id]["sequence"]).encode(), ip)
 
 async def main():
