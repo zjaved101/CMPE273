@@ -11,9 +11,6 @@ async def handleClient(reader, writer):
 
     while data:
         message = data.decode()
-        # addr = writer.get_extra_info('peername')
-
-        # print('Connection address:%s Message: %s' % (addr, message))
         print('Received data: %s' % message)
 
         writer.write("pong".encode())

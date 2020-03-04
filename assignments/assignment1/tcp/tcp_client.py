@@ -17,11 +17,8 @@ async def main():
 
     print("Press Ctrl + c to quit client")
     try:
-        # print("Opening Connection to server")
         reader, writer = await asyncio.open_connection(TCP_IP, TCP_PORT)
-        # print('connected to server')
         for i in range(0, args.ping):
-            # reader, writer = await asyncio.open_connection(TCP_IP, TCP_PORT)
             message = "%s:%s" % (args.id, MESSAGE)
 
             # delay message only if user provided seconds greater than 1
@@ -32,7 +29,6 @@ async def main():
             writer.write(message.encode())
             data = await reader.read(BUFFER_SIZE)
             print("Received data:%s" % data.decode())
-            # writer.close()
     except KeyboardInterrupt:
         print("Client closed...")
 
