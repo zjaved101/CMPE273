@@ -33,7 +33,7 @@ async def handleClient(udpSocket, ip, data):
     id = split[0]
     # acknowledgement to client that server is alive
     if split[1] == "-2":
-        print("Acknowleding client %s" % id)
+        print("Acknowledging client %s" % id)
         udpSocket.sendto("0".encode(), ip)
         return
 
