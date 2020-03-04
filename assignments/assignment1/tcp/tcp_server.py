@@ -7,13 +7,18 @@ BUFFER_SIZE = 1024
 
 async def handleClient(reader, writer):
     data = await reader.read(BUFFER_SIZE)
-    message = data.decode()
-    addr = writer.get_extra_info('peername')
+    print("Connected Client: %s" % (data.decode().split(':')[0]))
 
-    print('Connection address:%s Message: %s' % (addr, message))
+    while data:
+        message = data.decode()
+        # addr = writer.get_extra_info('peername')
 
-    writer.write("pong".encode())
-    await writer.drain()
+        # print('Connection address:%s Message: %s' % (addr, message))
+        print('Received data: %s' % message)
+
+        writer.write("pong".encode())
+        await writer.drain()
+        data = await reader.read(BUFFER_SIZE)
 
     writer.close()
 
