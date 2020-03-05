@@ -21,8 +21,8 @@ async def main():
         for i in range(0, args.ping):
             message = "%s:%s" % (args.id, MESSAGE)
 
-            # delay message only if user provided seconds greater than 1
-            if args.delay > 1:
+            # delay message only if user provided seconds greater than 0
+            if args.delay > 0:
                 time.sleep(args.delay)
 
             print("Sending data: %s" % MESSAGE)
