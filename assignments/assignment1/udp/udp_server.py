@@ -14,9 +14,9 @@ def writeDataToFile(id):
     if not os.path.exists("output"):
         os.mkdir("output")
 
-    with open("output/%s" % FILE, 'wb') as f:
+    with open("output/%s" % FILE, 'w') as f:
         for data in FILE_DATA[id]["data"]:
-            f.write(data.encode())
+            f.write(data)
 
 async def handleClient(udpSocket, ip, data):
     split = data.decode('utf-8').split('.')

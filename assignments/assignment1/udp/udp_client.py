@@ -9,30 +9,12 @@ BUFFER_SIZE = 1024
 MESSAGE = "ping"
 FILE = "upload.txt"
 
-def send(id=0):
-    try:
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.sendto(f"{id}:{MESSAGE}".encode(), (UDP_IP, UDP_PORT))
-        data, ip = s.recvfrom(BUFFER_SIZE)
-        print("received data: {}: {}".format(ip, data.decode()))
-    except socket.error:
-        print("Error! {}".format(socket.error))
-        exit()
-
-def get_client_id():
-    id = input("Enter client id:")
-    return id
-
 def sendMessage(udpSocket, id, sequence, message):
     udpSocket.sendto(f"{id}.{sequence}.{message}".encode(), (UDP_IP, UDP_PORT))
 
 def receiveMessage(udpSocket):
     data, ip = udpSocket.recvfrom(BUFFER_SIZE)
     return data, ip
-
-def openFile():
-    with open('upload.txt', 'rb') as f:
-        return f.readlines()
 
 def main():
     try:
