@@ -56,12 +56,11 @@ def hello():
 
 @app.route('/api/tests', methods = ['POST'])
 def createTest():
-    global TESTID
     cur = get_db().cursor()
     tests = request.json
     # sql = '%s, %s' % (str(TESTID), json.dumps(tests))
     # cur.execute('INSERT INTO tests VALUES(?, ?, ?)', (str(TESTID), json.dumps(tests), ''))
-    cur.execute('INSERT INTO tests VALUES(?, ?)', (json.dumps(tests), ''))
+    cur.execute('INSERT INTO tests VALUES(?, ?)', (json.dumps(tests), '[]'))
     get_db().commit()
     tests['test_id'] = cur.lastrowid
     # TESTID += 1
@@ -75,47 +74,51 @@ def getTest(id):
     cur.execute('SELECT rowid, answers, submissions FROM tests WHERE rowid=%s' % str(id))
     result = cur.fetchone()
 
-    id, answers, submission = result
+    id, answers, submissions = result
     answers = json.loads(answers)
     answers['test_id'] = id
-    # CHANGE THIS TO PARSE THE SUBMISSION STRING AND CREATE A LIST
-    answers['submission'] = convertStringToList(submission)
+    # answers['submission'] = convertStringToList(submission)
+    answers['submissions'] = json.loads(submissions)
 
     return answers
 
-@app.route('/classes', methods = ['POST'])
-def createClass():
-    global CLASSID
-    CLASSES[CLASSID] = {}
-    CLASSES[CLASSID]['name'] = request.form['name']
-    CLASSES[CLASSID]['students'] = []
-    CLASSID += 1
-    return jsonify({
-        'id' : CLASSID - 1,
-        'name' : request.form['name'],
-        'students' : CLASSES[CLASSID - 1]['students']
-    }), 201
+@app.route('/api/tests/<id>/scantrons', methods = ['POST'])
+def submitScantron(id):
+    cur = get_db().cursor()
+    scantron = request.json
 
-@app.route('/classes/<id>', methods = ['GET'])
-def getClass(id):
-    return jsonify({
-        'id' : id,
-        'name' : CLASSES[int(id)]['name'],
-        'students' : CLASSES[int(id)]['students']
-    })
+    cur.execute('SELECT rowid, answers, submissions FROM tests WHERE rowid=%s' % str(id))
+    result = cur.fetchone()
+    id, answers, submissions = result
+    answers = json.loads(answers)
+    submissions  = json.loads(submissions)
+    score, compared = gradeScantron(answers, scantron)
 
-@app.route('/classes/<id>', methods = ['PATCH'])
-def patchClass(id):
-    CLASSES[int(id)]['students'].append(STUDENTS[int(request.form['student_id'])])
-    students = []
-    for student in CLASSES[int(id)]['students']:
-        students.append({
-            'id' : STUDENTS.index(student),
-            'name' : student
-        })
+    # keep in mind the actual index is len - 1
+    graded = {
+        'scantron_id' : len(submissions) + 1,
+        'scantron_url': '',
+        'name': '',
+        'score': score,
+        'result': compared
+    }
+
+    submissions.append(graded)
+    cur.execute('UPDATE tests SET submissions=\'%s\' WHERE rowid=%s' % (json.dumps(submissions), str(id)))
+    get_db().commit()
+
+    return graded, 201
+
+def gradeScantron(answers, scantron):
+    '''
+        Grades the submitted scantron
+        Returns a tuple as (score, correctedJson)
+    '''
+    score = 0
+    graded = {}
+    for question in answers['answer_keys']:
+        if answers['answer_keys'][question] == scantron[question]:
+            score += 2
+        graded[question] = {'actual': scantron[question], 'expected': answers['answer_keys'][question]}
     
-    return jsonify({
-        'id' : id,
-        'name' : CLASSES[int(id)]['name'],
-        'students' : students
-    })
+    return (score, graded)
