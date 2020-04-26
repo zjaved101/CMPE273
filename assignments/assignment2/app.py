@@ -1,20 +1,30 @@
-from flask import Flask, escape, request, jsonify, g
+from flask import Flask, escape, request, jsonify, g, url_for, send_from_directory
 import sqlite3
 import json
+import os
+from werkzeug.utils import secure_filename
 
 app = Flask(__name__)
 
-STUDENTS = ['John Doe', 'Mary Doe', 'Bob Doe']
-CLASSES = {}
-# TESTID = 0
 DATABASE = 'assignment2.db'
+UPLOAD_FOLDER = 'files'
+ALLOWED_EXTENSIONS = {'json'}
+
+# create uploads directory if it doesn't exist
+if not os.path.exists(UPLOAD_FOLDER):
+    os.makedirs(UPLOAD_FOLDER)
+
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
+# checks if file extensions is allowed
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 def get_db():
     db = getattr(g, '_database', None)
     if db is None:
         db = g._database = sqlite3.connect(DATABASE)
         c = db.cursor()
-        # c.execute('CREATE TABLE IF NOT EXISTS tests (id INTEGER PRIMARY KEY, answers VARCHAR, submissions VARCHAR)')
         c.execute('CREATE TABLE IF NOT EXISTS tests (answers VARCHAR, submissions VARCHAR)')
     return db
 
@@ -24,30 +34,34 @@ def close_connection(exception):
     if db is not None:
         db.close()
 
-# # update TESTID with the last rowid from database
-# with app.app_context():
-#     cur = get_db().cursor()
-#     cur.execute('SELECT max(id) FROM tests')
-#     TESTID = cur.fetchone()[0]
-#     print('Currenet TESTID is %s' % TESTID)
-
-def convertStringToList(string):
-    list = []
-    if not string:
-        return list
-
-    split = string.split('+')
-    for elem in split:
-        list.append(elem)
+def gradeScantron(answers, scantron):
+    '''
+        Grades the submitted scantron
+        Returns a tuple as (score, correctedJson)
+    '''
+    score = 0
+    graded = {}
+    for question in answers['answer_keys']:
+        if answers['answer_keys'][question] == scantron['answers'][question]:
+            score += 2
+        graded[question] = {'actual': scantron['answers'][question], 'expected': answers['answer_keys'][question]}
     
-    return list
+    return (score, graded)
 
-# DATABASE = connectToDatabase('assignment2.db')
-# creates table if it doesn't exist in database
-# CURSOR = DATABASE.cursor()
-# sql = 'CREATE TABLE IF NOT EXISTS tests (id INTEGER PRIMARY KEY, answers JSON)'
-# CURSOR.execute(sql)
-# CURSOR.close()
+def validateJson(json):
+    '''
+        Validates the json answers
+        Must be integer: Alpha format
+    '''
+    if len(json) < 50:
+        return False
+    
+    valid = ['A','B','C','D','E']
+    for key in json:
+        if not key.isdigit() or json[key] not in valid:
+            return False
+    
+    return True
 
 @app.route('/')
 def hello():
@@ -58,12 +72,13 @@ def hello():
 def createTest():
     cur = get_db().cursor()
     tests = request.json
-    # sql = '%s, %s' % (str(TESTID), json.dumps(tests))
-    # cur.execute('INSERT INTO tests VALUES(?, ?, ?)', (str(TESTID), json.dumps(tests), ''))
+
+    if not validateJson(tests['answer_keys']):
+        return jsonify("invalid answer key format"), 400
+
     cur.execute('INSERT INTO tests VALUES(?, ?)', (json.dumps(tests), '[]'))
     get_db().commit()
     tests['test_id'] = cur.lastrowid
-    # TESTID += 1
     tests['submissions'] = []
 
     return tests, 201
@@ -77,15 +92,35 @@ def getTest(id):
     id, answers, submissions = result
     answers = json.loads(answers)
     answers['test_id'] = id
-    # answers['submission'] = convertStringToList(submission)
     answers['submissions'] = json.loads(submissions)
 
     return answers
 
 @app.route('/api/tests/<id>/scantrons', methods = ['POST'])
 def submitScantron(id):
+    if 'file' not in request.files:
+        return jsonify("No file part"), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify("No file selected"), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify("file extension now allowed"), 400
+    
+    filename = secure_filename(file.filename)
+    if not os.path.exists('%s/%s' % (UPLOAD_FOLDER, id)):
+        os.makedirs('%s/%s' % (UPLOAD_FOLDER, id))
+
+    file.save(os.path.join('%s/%s' % (app.config['UPLOAD_FOLDER'], id), filename))
+
     cur = get_db().cursor()
-    scantron = request.json
+    # scantron = request.json
+    with open('files/%s/%s' % (id, filename), 'r') as f:
+        scantron = json.load(f)
+
+    if not validateJson(scantron['answers']):
+        return jsonify("invalid answer key format"), 400
 
     cur.execute('SELECT rowid, answers, submissions FROM tests WHERE rowid=%s' % str(id))
     result = cur.fetchone()
@@ -97,8 +132,8 @@ def submitScantron(id):
     # keep in mind the actual index is len - 1
     graded = {
         'scantron_id' : len(submissions) + 1,
-        'scantron_url': '',
-        'name': '',
+        'scantron_url': '%s%s/%s' % (request.host_url, id, filename),
+        'name': scantron['name'],
         'score': score,
         'result': compared
     }
@@ -109,16 +144,7 @@ def submitScantron(id):
 
     return graded, 201
 
-def gradeScantron(answers, scantron):
-    '''
-        Grades the submitted scantron
-        Returns a tuple as (score, correctedJson)
-    '''
-    score = 0
-    graded = {}
-    for question in answers['answer_keys']:
-        if answers['answer_keys'][question] == scantron[question]:
-            score += 2
-        graded[question] = {'actual': scantron[question], 'expected': answers['answer_keys'][question]}
-    
-    return (score, graded)
+@app.route('/<id>/<filename>', methods= ['GET'])
+def downloadFile(id, filename):
+    directory = os.path.join(app.root_path, app.config['UPLOAD_FOLDER']) + '/%s' % id
+    return send_from_directory(directory=directory, filename=filename)
