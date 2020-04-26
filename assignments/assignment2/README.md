@@ -60,8 +60,7 @@ _Request_
 
 
 ```
-# HTTP Request Body
-BINARY_SCANTRON_PDF_FILE_DATA
+curl -F 'data=@path/to/local/scantron-1.json' http://localhost:5000/api/tests/1/scantrons
 ```
 
 _Response_
@@ -71,7 +70,7 @@ _Response_
 
 {
     "scantron_id": 1,
-    "scantron_url": "http://localhost:5000/files/1.pdf",
+    "scantron_url": "http://localhost:5000/files/scantron-1.json",
     "name": "Foo Bar",
     "subject": "Math",
     "score": 40,
