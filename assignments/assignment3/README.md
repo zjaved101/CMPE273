@@ -31,9 +31,20 @@ Implement LRU cache as Python decorator and you can pass cache size as argument.
 
 ```python
 @lru_cache(5)
-def get():
+def get(...):
     ...
     return ...
+    
+@lru_cache(5)
+def put(...):
+    ...
+    return ...
+
+@lru_cache(5)
+def delete(...):
+    ...
+    return ...
+
 ```
 
 @lru_cache is your implementation as a decorator function and do NOT use any existing LRU libraries.
@@ -63,6 +74,19 @@ def get(key):
         return udp_client.get(key)
     else:
         return None
+        
+@lru_cache(5)
+def put(key, value):
+    bloomfilter.add(key)
+    return udp_client.put(key, value)
+
+@lru_cache(5)
+def delete(key):
+    if bloomfilter.is_member(key):
+        return udp_client.delete(key)
+    else:
+        return None
+
 ```
 
 
