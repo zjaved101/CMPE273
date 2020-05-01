@@ -17,6 +17,10 @@ class MyDict(dict):
     def get(self, key):
         return self[key]
 
+    def delete(self, key):
+        del self[key]
+        return 'success'
+
 class UDPServer():
     def __init__(self, host, port):
         self.host = host
@@ -39,8 +43,11 @@ class UDPServer():
     def handle_operation(self, operation, key, value):
         if operation == 'GET':
             return serialize(self.db.get(key.decode()))
+            # return serialize(self.db.get(key))
         elif operation == 'PUT':
             return self.db.put(key, value)
+        elif operation == 'DELETE':
+            return self.db.delete(key.decode())
         else:
             print(f'Error: Invalid operation={operation}')
             return 'Not supported operation={}'.format(operation)

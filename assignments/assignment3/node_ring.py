@@ -11,8 +11,8 @@ class NodeRing():
     def get_node(self, key_hex):
         key = int(key_hex, 16)
         node_index = key % len(self.nodes)
-        return self.nodes[node_index]
-        # return node_index
+        # return self.nodes[node_index]
+        return node_index
 
 
 def test():
@@ -23,4 +23,4 @@ def test():
 
 
 # Uncomment to run the above local test via: python3 node_ring.py
-test()
+# test()
