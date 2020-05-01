@@ -5,100 +5,15 @@ from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE
 from node_ring import NodeRing
-
+from lru_cache import LRUCache
+import functools
 # LOOK AT USING DEQUEUE FOR LRU CACHE
 from collections import deque
 
 BUFFER_SIZE = 1024
 NODE_RING = NodeRing(nodes=NODES)
 LRU_CACHE = None
-
-class Node():
-    def __init__(self, next=None, previous=None, data=None):
-        self.data = data
-        self.next = next
-        self.previous = previous
-
-class LinkedList():
-    def __init__(self, head=None, tail=None):
-        self.head = head
-        self.tail = tail
-
-    # put node as new head
-    def push(self, data):
-        node = Node(data=data)
-    
-        node.next = self.head
-        node.prev = None
-    
-        if self.head:
-            self.head.prev = node
-    
-        self.head = node
-
-        if not self.tail:
-            self.tail = node
-
-        return node
-    
-    # remove node fom list
-    def remove(self, node):
-        if not self.head and not self.tail: 
-            return
-
-        if self.tail.data == node.data:
-            self.tail = node.prev
-            # self.tail.next = None
-
-        if self.head.data == node.data:
-            self.head = node.next
-
-        if node.next:
-            node.next.prev = node.prev
-
-        if node.prev:
-            node.prev.next = node.next
-
-    # find node with same data
-    def find(self, data):
-        current = self.head
-        while current.data != data:
-            current = current.next
-        
-        return current
-
-    def printList(self): 
-        node = self.head
-        string = ''
-        while(node is not None): 
-            # print(node.data)
-            string += '%s,' % node.data
-            node = node.next
-
-        print(string)
-
-
-class LRUCache():
-    def __init__(self, size):
-        self.size = size
-        self.linked_list = LinkedList()
-        self.map = {}
-
-    def add(self, data):
-        node = self.map.get(data)
-        if not node and len(map) < self.size:
-            self.map[data] = self.linked_list.push(data)
-            self.size += 1
-        else:
-            self.linked_list.remove(self.linked_list.tail)
-            self.map[data] = self.linked_list.push(data)
-
-    def get(self, data):
-        if data in self.map:
-            return self.map[data].data
-        
-        return None
-
+hash_codes = set()
 
 class UDPClient():
     def __init__(self, host, port):
@@ -116,38 +31,99 @@ class UDPClient():
             print("Error! {}".format(socket.error))
             exit()
 
-def lru_cache(size):
+def lru_cache(size):    
     global LRU_CACHE
     if not LRU_CACHE:
         LRU_CACHE = LRUCache(size)
 
+
+    def decorator(func):
+        @functools.wraps(func)
+        def wrapper(*args, **kwargs):
+            cache = LRU_CACHE.get(args[0])
+            if cache:
+                print("==HIT==")
+                print(cache)
+                return cache
+            else:
+                print("==MISS==")
+                # return func(*args, **kwargs)
+
+                print(func.__name__)
+                if func.__name__ == 'put':
+                    LRU_CACHE.add(args[0], args[1])
+                    # key, data = func(*args, **kwargs)
+                    # LRU_CACHE.add(key, data)
+                    # LRU_CACHE.add(args[0], response)
+
+                return func(*args, **kwargs)
+
+        return wrapper
+    return decorator
+
 @lru_cache(5)
-def get(data):
-    return LRU_CACHE.get(data)
+def get(hc, udp_clients):
+    print(hc)
+    data_bytes, key = serialize_GET(hc)
+    fix_me_server_id = NODE_RING.get_node(key)
+    response = udp_clients[fix_me_server_id].send(data_bytes)
+    print(response)
+
+@lru_cache(5)
+def put(key, data_bytes, udp_clients):
+    global hash_codes
+    # data_bytes, key = serialize_PUT(user)
+    fix_me_server_id = NODE_RING.get_node(key)
+    response = udp_clients[fix_me_server_id].send(data_bytes)
+    hash_codes.add(response.decode())
+    print(response)
+    # return key, data_bytes
+
+# def put(key, data_bytes, udp_clients):
+#     fix_me_server_id = NODE_RING.get_node(key)
+#     response = udp_clients[fix_me_server_id].send(data_bytes)
+#     hash_codes.add(response)
+#     print(response)
+#     return 
+
 
 def process(udp_clients):
-    hash_codes = set()
+    global hash_codes
+    # hash_codes = set()
     # PUT all users.
+    # import pdb; pdb.set_trace()
     print("====PUT====")
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
-        # fix_me_server_id = get_node(key)
-        fix_me_server_id = NODE_RING.get_node(key)
-        response = udp_clients[fix_me_server_id].send(data_bytes)
-        hash_codes.add(response)
-        print(response)
+        put(key, data_bytes, udp_clients)
+        # data_bytes, key = serialize_PUT(u)
+        # put(key, data_bytes, udp_clients)
+
+
+        # data_bytes, key = serialize_PUT(u)
+        # fix_me_server_id = NODE_RING.get_node(key)
+        # response = udp_clients[fix_me_server_id].send(data_bytes)
+        # hash_codes.add(response)
+        # print(response)
 
     print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
     # GET all users.
     print("====GET====")
     for hc in hash_codes:
-        print(hc)
-        data_bytes, key = serialize_GET(hc)
-        # fix_me_server_id = get_node(key)
-        fix_me_server_id = NODE_RING.get_node(key)
-        response = udp_clients[fix_me_server_id].send(data_bytes)
-        print(response)
+        get(hc, udp_clients)
+        # print(hc)
+        # data_bytes, key = serialize_GET(hc)
+        # # fix_me_server_id = get_node(key)
+        # fix_me_server_id = NODE_RING.get_node(key)
+        # response = udp_clients[fix_me_server_id].send(data_bytes)
+        # print(response)
+    
+    # GET second time
+    print("====GET====")
+    # import pdb; pdb.set_trace()
+    for hc in hash_codes:
+        get(hc, udp_clients)
 
     # DELETE all users
     print("====DELETE====")
@@ -159,11 +135,11 @@ def process(udp_clients):
         print(response)
 
 if __name__ == "__main__":
-    # clients = [
-    #     UDPClient(server['host'], server['port'])
-    #     for server in NODES
-    # ]
-    # process(clients)
+    clients = [
+        UDPClient(server['host'], server['port'])
+        for server in NODES
+    ]
+    process(clients)
 
     # ll = LinkedList()
     # ll.push(1)
@@ -174,14 +150,14 @@ if __name__ == "__main__":
     # ll.remove(ll.find(1))
     # ll.printList()
     
-    import pdb; pdb.set_trace()
-    cache = LRUCache(5)
-    cache.add(1)
-    cache.add(2)
-    cache.linked_list.printList()
-    cache.add(3)
-    cache.add(4)
-    cache.add(5)
-    cache.linked_list.printList()
-    cache.add(6)
-    cache.linked_list.printList()
+    # import pdb; pdb.set_trace()
+    # cache = LRUCache(5)
+    # cache.add(1)
+    # cache.add(2)
+    # cache.linked_list.printList()
+    # cache.add(3)
+    # cache.add(4)
+    # cache.add(5)
+    # cache.linked_list.printList()
+    # cache.add(6)
+    # cache.linked_list.printList()

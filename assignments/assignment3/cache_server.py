@@ -42,12 +42,13 @@ class UDPServer():
 
     def handle_operation(self, operation, key, value):
         if operation == 'GET':
-            return serialize(self.db.get(key.decode()))
-            # return serialize(self.db.get(key))
+            # return serialize(self.db.get(key.decode()))
+            return serialize(self.db.get(key))
         elif operation == 'PUT':
             return self.db.put(key, value)
         elif operation == 'DELETE':
-            return self.db.delete(key.decode())
+            # return self.db.delete(key.decode())
+            return self.db.delete(key)
         else:
             print(f'Error: Invalid operation={operation}')
             return 'Not supported operation={}'.format(operation)
