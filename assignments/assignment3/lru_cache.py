@@ -73,9 +73,13 @@ class LRUCache():
         node = self.map.get(key)
         if not node and len(self.map) < self.size:
             self.map[key] = self.linked_list.push(data)
-            self.size += 1
-        else:
+            # self.size += 1
+        elif not node:
             self.linked_list.remove(self.linked_list.tail)
+            self.map[key] = self.linked_list.push(data)
+        else:
+            # self.linked_list.remove(self.linked_list.tail)
+            self.linked_list.remove(node)
             self.map[key] = self.linked_list.push(data)
 
     def get(self, key):
@@ -83,3 +87,8 @@ class LRUCache():
             return self.map[key].data
         
         return None
+
+    def delete(self, key):
+        node = self.map[key]
+        self.linked_list.remove(node)
+        del self.map[key]

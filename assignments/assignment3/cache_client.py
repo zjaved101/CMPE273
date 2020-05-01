@@ -40,23 +40,44 @@ def lru_cache(size):
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
+            if func.__name__ == 'delete':
+                print("==DELETE==")
+                LRU_CACHE.delete(args[0])
+                return func(*args, **kwargs)
+            
             cache = LRU_CACHE.get(args[0])
             if cache:
-                print("==HIT==")
+                print('==HIT==')
                 print(cache)
                 return cache
             else:
                 print("==MISS==")
-                # return func(*args, **kwargs)
 
-                print(func.__name__)
                 if func.__name__ == 'put':
                     LRU_CACHE.add(args[0], args[1])
-                    # key, data = func(*args, **kwargs)
-                    # LRU_CACHE.add(key, data)
-                    # LRU_CACHE.add(args[0], response)
-
+                
                 return func(*args, **kwargs)
+
+            # cache = LRU_CACHE.get(args[0])
+            # if cache and func.__name__ == 'delete':
+            #     print("==DELETE==")
+            #     # print(cache)
+            #     # return cache
+            #     LRU_CACHE.delete(args[0])
+
+            # elif cache:
+            #     print(cache)
+            #     return cache
+            # else:
+            #     print("==MISS==")
+
+            #     # print(func.__name__)
+            #     if func.__name__ == 'put':
+            #         LRU_CACHE.add(args[0], args[1])
+            #     if func.__name__ == 'delete':
+            #         LRU_CACHE.delete(args[0])
+
+                # return func(*args, **kwargs)
 
         return wrapper
     return decorator
@@ -72,39 +93,28 @@ def get(hc, udp_clients):
 @lru_cache(5)
 def put(key, data_bytes, udp_clients):
     global hash_codes
-    # data_bytes, key = serialize_PUT(user)
     fix_me_server_id = NODE_RING.get_node(key)
     response = udp_clients[fix_me_server_id].send(data_bytes)
     hash_codes.add(response.decode())
     print(response)
-    # return key, data_bytes
 
-# def put(key, data_bytes, udp_clients):
-#     fix_me_server_id = NODE_RING.get_node(key)
-#     response = udp_clients[fix_me_server_id].send(data_bytes)
-#     hash_codes.add(response)
-#     print(response)
-#     return 
+@lru_cache(5)
+def delete(hc, udp_clients):
+    global hash_codes
+    print(hc)
+    data_bytes, key = serialize_DELETE(hc)
+    fix_me_server_id = NODE_RING.get_node(key)
+    response = udp_clients[fix_me_server_id].send(data_bytes)
+    hash_codes.remove(hc)
+    print(response)
 
 
 def process(udp_clients):
     global hash_codes
-    # hash_codes = set()
-    # PUT all users.
-    # import pdb; pdb.set_trace()
     print("====PUT====")
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
         put(key, data_bytes, udp_clients)
-        # data_bytes, key = serialize_PUT(u)
-        # put(key, data_bytes, udp_clients)
-
-
-        # data_bytes, key = serialize_PUT(u)
-        # fix_me_server_id = NODE_RING.get_node(key)
-        # response = udp_clients[fix_me_server_id].send(data_bytes)
-        # hash_codes.add(response)
-        # print(response)
 
     print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
@@ -112,27 +122,18 @@ def process(udp_clients):
     print("====GET====")
     for hc in hash_codes:
         get(hc, udp_clients)
-        # print(hc)
-        # data_bytes, key = serialize_GET(hc)
-        # # fix_me_server_id = get_node(key)
-        # fix_me_server_id = NODE_RING.get_node(key)
-        # response = udp_clients[fix_me_server_id].send(data_bytes)
-        # print(response)
-    
-    # GET second time
-    print("====GET====")
-    # import pdb; pdb.set_trace()
-    for hc in hash_codes:
-        get(hc, udp_clients)
 
     # DELETE all users
     print("====DELETE====")
+    copy = list(hash_codes)
+    for hc in copy:
+        delete(hc, udp_clients)
+
+    # GET all users.
+    print("====GET====")
+    import pdb; pdb.set_trace()
     for hc in hash_codes:
-        print(hc)
-        data_bytes, key = serialize_DELETE(hc)
-        fix_me_server_id = NODE_RING.get_node(key)
-        response = udp_clients[fix_me_server_id].send(data_bytes)
-        print(response)
+        get(hc, udp_clients)
 
 if __name__ == "__main__":
     clients = [
@@ -152,12 +153,19 @@ if __name__ == "__main__":
     
     # import pdb; pdb.set_trace()
     # cache = LRUCache(5)
-    # cache.add(1)
-    # cache.add(2)
+    # cache.add(1, 1)
+    # cache.add(2, 2)
     # cache.linked_list.printList()
-    # cache.add(3)
-    # cache.add(4)
-    # cache.add(5)
+    # cache.add(3, 3)
+    # cache.add(4,4)
+    # cache.add(5,5)
     # cache.linked_list.printList()
-    # cache.add(6)
+    # import pdb; pdb.set_trace()
+    # cache.add(6,6)
+    # cache.linked_list.printList()
+    # cache.add(7,7)
+    # cache.linked_list.printList()
+    # cache.add(3, 3)
+    # cache.linked_list.printList()
+    # cache.add(5,5)
     # cache.linked_list.printList()
