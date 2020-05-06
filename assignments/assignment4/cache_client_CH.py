@@ -28,38 +28,24 @@ class UDPClient():
 def process(udp_clients):
     hash_codes = set()
     # PUT all users.
-    # import pdb; pdb.set_trace()
     print('====PUT====')
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
-        # fix_me_server_id = NODE_RING.get_node(key)
-
-        # fix_me_server_id = NODE_RING.rendezvous_hash_node(key)
-
         fix_me_server_id = NODE_RING.consistent_hash_node(key)
-        # response = udp_clients[fix_me_server_id].send(data_bytes)
+
         for index in fix_me_server_id:
             response = udp_clients[index].send(data_bytes)
             hash_codes.add(response.decode())
             print(response)
-        # hash_codes.add(response.decode())
-        # print(response)
 
     print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
-    # TODO: PART I
     # GET all users.
     print('====GET====')
     for hc in hash_codes:
         print(hc)
         data_bytes, key = serialize_GET(hc)
-        # fix_me_server_id = NODE_RING.get_node(key)
-
-        # fix_me_server_id = NODE_RING.rendezvous_hash_node(key)
-
         fix_me_server_id = NODE_RING.consistent_hash_node(key)
-        # response = udp_clients[fix_me_server_id].send(data_bytes)
-        # print(response)
 
         for index in fix_me_server_id:
             response = udp_clients[index].send(data_bytes)
@@ -70,14 +56,8 @@ def process(udp_clients):
     for hc in hash_codes:
         print(hc)
         data_bytes, key = serialize_DELETE(hc)
-
-        # fix_me_server_id = NODE_RING.get_node(key)
-
-        # fix_me_server_id = NODE_RING.rendezvous_hash_node(key)
-
         fix_me_server_id = NODE_RING.consistent_hash_node(key)
-        # response = udp_clients[fix_me_server_id].send(data_bytes)
-        # print(response)
+
         for index in fix_me_server_id:
             response = udp_clients[index].send(data_bytes)
             print(response)

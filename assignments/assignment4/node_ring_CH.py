@@ -17,28 +17,6 @@ class NodeRing():
     def get_node(self, key_hex):
         key = int(key_hex, 16)
         node_index = key % len(self.nodes)
-        # return self.nodes[node_index]
-        return node_index
-
-    def rendezvous_hash_node(self, key_hex):
-        largest = -1
-        node_index = 0
-        # import pdb; pdb.set_trace()
-        for node in self.nodes:
-            # node['key'] = key_hex
-            # value = hash(frozenset(node.items()))
-
-            # value = hash(json.dumps(node, sort_keys=True))
-
-            # value = hash(key_hex + str(node['port']))
-
-            # value = int(hashlib.sha512(key_hex.encode() + str(node['port']).encode()).hexdigest(), 16)
-            value = int(hashlib.md5(key_hex.encode() + str(node['port']).encode()).hexdigest(), 16)
-
-            if value > largest:
-                largest = value
-                node_index = node['port'] % 10 # get the last digit of port 
-        
         return node_index
 
     def closestIndex(self, list, key):
@@ -46,22 +24,12 @@ class NodeRing():
 
     def consistent_hash_node(self, key_hex):
         if not self.consistent_hash_index:
-            # for node in self.nodes:
-            # for node in self.virtual_nodes:
             for index, node in enumerate(self.virtual_nodes):
-
-                # value = hash(frozenset(node.items())) % 360
-                # self.consistent_hash_index[value] = node['port'] % 10
-                # value = hash(node) % 360
-
                 value = hash(node) % self.consistent_hash_size
-                # self.consistent_hash_index[value] = self.virtual_nodes[node]['port'] % 10
                 self.consistent_hash_index[value] = index
 
         value = hash(key_hex)
-        # value = int(hashlib.sha512(key_hex.encode()).hexdigest(), 16)
         index = self.consistent_hash_index[self.closestIndex(list(self.consistent_hash_index.keys()), value)]
-        # return self.consistent_hash_index[self.closestIndex(list(self.consistent_hash_index.keys()), value)]
         return [(index + i) % len(self.virtual_nodes) for i in range(0, self.replication)]
 
 def test():
