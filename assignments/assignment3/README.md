@@ -68,7 +68,9 @@ Answer the following question:
 * What are the best _k_ hashes and _m_ bits values to store one million _n_ keys (E.g. e52f43cd2c23bb2e6296153748382764) suppose we use the same MD5 hash key from [pickle_hash.py](https://github.com/sithu/cmpe273-spring20/blob/master/midterm/pickle_hash.py#L14) and explain why?
 ## ANSWER
 Reference link: https://en.wikipedia.org/wiki/Bloom_filter#Optimal_number_of_hash_functions
+
 Choosing a false positive rate (between 0 to 1) of .1 we can use this formula to get the optimal number of k hashes: -log2(.1) ~= 3 hash functions
+
 Using the same false positive rate of .1 we can use this formula to get the optimal m bits for one million keys: -1.44log2(.1) ~= 5 bits per key
 
 ```python
