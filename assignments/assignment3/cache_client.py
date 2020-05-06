@@ -15,7 +15,8 @@ BUFFER_SIZE = 1024
 NODE_RING = NodeRing(nodes=NODES)
 LRU_CACHE = None
 hash_codes = set()
-BLOOM_FILTER = BloomFilter(10, 4)
+# BLOOM_FILTER = BloomFilter(10, 4)
+BLOOM_FILTER = BloomFilter(1000000, 4)
 
 class UDPClient():
     def __init__(self, host, port):
@@ -91,16 +92,14 @@ def delete(hc, udp_clients):
         data_bytes, key = serialize_DELETE(hc)
         fix_me_server_id = NODE_RING.get_node(key)
         response = udp_clients[fix_me_server_id].send(data_bytes)
-        # hash_codes.remove(hc)
         print(response)
     else:
         print('===NO DELETE===')
 
 
 def process(udp_clients):
-    # import pdb; pdb.set_trace()
     global hash_codes
-    print("====PUT====")
+    # print("====PUT====")
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
         put(key, data_bytes, udp_clients)
@@ -108,21 +107,14 @@ def process(udp_clients):
     print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
     # GET all users.
-    print("====GET====")
+    # print("====GET====")
     for hc in hash_codes:
         get(hc, udp_clients)
 
     # DELETE all users
-    print("====DELETE====")
-    # copy = list(hash_codes)
+    # print("====DELETE====")
     for hc in hash_codes:
         delete(hc, udp_clients)
-
-    # GET all users.
-    print("====GET====")
-    # import pdb; pdb.set_trace()
-    for hc in hash_codes:
-        get(hc, udp_clients)
 
 if __name__ == "__main__":
     clients = [
@@ -130,31 +122,3 @@ if __name__ == "__main__":
         for server in NODES
     ]
     process(clients)
-
-    # ll = LinkedList()
-    # ll.push(1)
-    # ll.push(2)
-    # ll.printList()
-    # ll.remove(ll.find(2))
-    # ll.printList()
-    # ll.remove(ll.find(1))
-    # ll.printList()
-    
-    # import pdb; pdb.set_trace()
-    # cache = LRUCache(5)
-    # cache.add(1, 1)
-    # cache.add(2, 2)
-    # cache.linked_list.printList()
-    # cache.add(3, 3)
-    # cache.add(4,4)
-    # cache.add(5,5)
-    # cache.linked_list.printList()
-    # import pdb; pdb.set_trace()
-    # cache.add(6,6)
-    # cache.linked_list.printList()
-    # cache.add(7,7)
-    # cache.linked_list.printList()
-    # cache.add(3, 3)
-    # cache.linked_list.printList()
-    # cache.add(5,5)
-    # cache.linked_list.printList()
