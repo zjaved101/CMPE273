@@ -25,9 +25,9 @@ _Response_
 
 ## 2. LRU Cache
 
-In order to reduce unnecessary network calls to the servers, you will be adding LRU cache on client side. On each GET, PUT, and DELETE call, you will be checking against data from a local cache.
+In order to reduce unnecessary network calls to the servers, you will be adding LRU cache on client side. On each GET call, you will be checking against data from a local cache.
 
-Implement LRU cache as Python decorator and you can pass cache size as argument.
+Implement LRU cache as Python decorator and you can pass cache size as argument. You must name the name as lru_cache.py and can be tested via test_lru_cache.py.
 
 ```python
 @lru_cache(5)
@@ -35,19 +35,20 @@ def get(...):
     ...
     return ...
     
-@lru_cache(5)
+
 def put(...):
     ...
     return ...
 
-@lru_cache(5)
 def delete(...):
     ...
     return ...
 
 ```
 
-@lru_cache is your implementation as a decorator function and do NOT use any existing LRU libraries.
+@lru_cache is your implementation as a decorator function and do NOT use any existing LRU libraries. 
+
+> Although you do not need to print execution time __[0.00000191s]__ and cache hit logs __[cache-hit]__, you should able to run test_lru_cache.py successfully without any errors in order to get full credits.
 
 ## 3. Bloom Filter
 
@@ -63,15 +64,35 @@ This is_member() function checks whether a given key is in the membership or not
 
 On the client side, the GET and DELETE will invoke is_member(key) function first prior to calling the servers while the PUT and DELETE will call add(key) function to update the membership.
 
+Bit array and hash libraries:
+
+```
+pipenv install bitarray
+pipenv install mmh3
+```
+
+Use this formula to calculate Bit array size:
+
+```
+m = - (n * log(p)) / (log(2)^2) 
+
+```
+
+where,
+- m = bit array size
+- n = number of expected keys to be stored
+- p = Probability of desired false positive rate
+
 Answer the following question:
 
 * What are the best _k_ hashes and _m_ bits values to store one million _n_ keys (E.g. e52f43cd2c23bb2e6296153748382764) suppose we use the same MD5 hash key from [pickle_hash.py](https://github.com/sithu/cmpe273-spring20/blob/master/midterm/pickle_hash.py#L14) and explain why?
 ## ANSWER
 Reference link: https://en.wikipedia.org/wiki/Bloom_filter#Optimal_number_of_hash_functions
 
-Choosing a false positive rate (between 0 to 1) of .1 we can use this formula to get the optimal number of k hashes: -log2(.1) ~= 3 hash functions
+Choosing a false positive rate (between 0 to 1) of .05 we can use this formula to get the optimal number of bits: -(1,000,000 * log(.05)) / (log(2)^2) ~= 6235224
 
-Using the same false positive rate of .1 we can use this formula to get the optimal m bits for one million keys: -1.44log2(.1) ~= 5 bits per key
+Using the the optimal number of bits we can calculate the optimal k hashes: (6235224 / 1,000,000) * log(2) ~= 4
+
 
 ```python
 @lru_cache(5)
@@ -80,13 +101,11 @@ def get(key):
         return udp_client.get(key)
     else:
         return None
-        
-@lru_cache(5)
+
 def put(key, value):
     bloomfilter.add(key)
     return udp_client.put(key, value)
 
-@lru_cache(5)
 def delete(key):
     if bloomfilter.is_member(key):
         return udp_client.delete(key)
@@ -94,6 +113,8 @@ def delete(key):
         return None
 
 ```
+
+You can validate your implementation using _test_bloom_filter.py_ and should get the expected output as test_bloom_filter_output.txt .
 
 
 
