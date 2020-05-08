@@ -9,7 +9,7 @@ class NodeRing():
         self.nodes = nodes
         self.consistent_hash_size = 2**32
         self.consistent_hash_index = {}
-        self.replication = 4
+        self.replication = 2
         self.virtual_nodes = {}
         for node in range(0, len(nodes) * 4):
             self.virtual_nodes[node % len(nodes)] = self.nodes[node % len(nodes)]
