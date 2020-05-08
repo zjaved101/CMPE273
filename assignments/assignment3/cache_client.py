@@ -8,14 +8,10 @@ from node_ring import NodeRing
 from lru_cache import lru_cache
 from bloom_filter import BloomFilter
 import functools
-# LOOK AT USING DEQUEUE FOR LRU CACHE
-from collections import deque
 
 BUFFER_SIZE = 1024
 NODE_RING = NodeRing(nodes=NODES)
-# LRU_CACHE = None
 hash_codes = set()
-# BLOOM_FILTER = BloomFilter(10, 4)
 BLOOM_FILTER = BloomFilter(20, .05)
 
 class UDPClient():
@@ -42,11 +38,9 @@ def lru_cache_dec(size):
         def wrapper(*args, **kwargs):
             cache = LRU_CACHE.get(args[0])
             if cache:
-                # print('==HIT==')
                 print(cache)
                 return cache
             else:
-                # print("==MISS==")
                 value = func(*args, **kwargs)
                 LRU_CACHE.add(args[0], value)
                 print(value)
@@ -63,11 +57,7 @@ def get(hc, udp_clients):
         fix_me_server_id = NODE_RING.get_node(key)
         response = udp_clients[fix_me_server_id].send(data_bytes)
         return response
-        # print(response)
-    # else:
-        # print('===NO GET===')
 
-# @lru_cache_dec(5)
 def put(key, data_bytes, udp_clients):
     global hash_codes
     fix_me_server_id = NODE_RING.get_node(key)
@@ -76,42 +66,30 @@ def put(key, data_bytes, udp_clients):
     print(response)
     BLOOM_FILTER.add(key)
 
-# @lru_cache_dec(5)
 def delete(hc, udp_clients):
-    # global hash_codes
     if BLOOM_FILTER.is_member(hc):
         print(hc)
         data_bytes, key = serialize_DELETE(hc)
         fix_me_server_id = NODE_RING.get_node(key)
         response = udp_clients[fix_me_server_id].send(data_bytes)
         print(response)
-    # else:
-        # print('===NO DELETE===')
-
 
 def process(udp_clients):
     global hash_codes
-    # import pdb; pdb.set_trace()
-    # print("====PUT====")
+
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
         put(key, data_bytes, udp_clients)
-
-    # print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
     # GET all users.
-    # import pdb; pdb.set_trace()
-    # print("====GET====")
     for hc in hash_codes:
         get(hc, udp_clients)
 
     # GET all users.
-    # print("====GET====")
     for hc in hash_codes:
         get(hc, udp_clients)
 
     # DELETE all users
-    # print("====DELETE====")
     for hc in hash_codes:
         delete(hc, udp_clients)
 
