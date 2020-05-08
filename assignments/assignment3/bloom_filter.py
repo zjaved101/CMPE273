@@ -8,11 +8,6 @@ class BloomFilter():
         # self.size = size
         # self.hash = hash
         # self.list = [0 for i in range(0, self.size)]
-
-        # import pdb; pdb.set_trace()
-        # self.size = round(-(keys * math.log(probability)) / (math.log(2)**2))
-        # self.hash = round(-(math.log(probability)))
-        # self.list = [0 for i in range(0, self.size)]
         
         # self.size = int(-(keys * math.log(probability)) / (math.log(2)**2))
         self.size = int(-(keys * math.log(probability))/(math.log(2)**2))
@@ -40,4 +35,3 @@ class BloomFilter():
             if not self.list[index]:
                 return False
         return True
-        
