@@ -63,7 +63,7 @@ class LinkedList():
         print(string)
 
 
-class LRUCache():
+class lru_cache():
     def __init__(self, size):
         self.size = size
         self.linked_list = LinkedList()
@@ -81,6 +81,8 @@ class LRUCache():
             # self.linked_list.remove(self.linked_list.tail)
             self.linked_list.remove(node)
             self.map[key] = self.linked_list.push(data)
+
+        return data
 
     def get(self, key):
         if key in self.map:
