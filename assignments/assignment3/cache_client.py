@@ -5,7 +5,7 @@ from sample_data import USERS
 from server_config import NODES
 from pickle_hash import serialize_GET, serialize_PUT, serialize_DELETE
 from node_ring import NodeRing
-from lru_cache import LRUCache
+from lru_cache import lru_cache
 from bloom_filter import BloomFilter
 import functools
 # LOOK AT USING DEQUEUE FOR LRU CACHE
@@ -13,10 +13,10 @@ from collections import deque
 
 BUFFER_SIZE = 1024
 NODE_RING = NodeRing(nodes=NODES)
-LRU_CACHE = None
+# LRU_CACHE = None
 hash_codes = set()
 # BLOOM_FILTER = BloomFilter(10, 4)
-BLOOM_FILTER = BloomFilter(1000000, 4)
+BLOOM_FILTER = BloomFilter(20, .05)
 
 class UDPClient():
     def __init__(self, host, port):
@@ -34,48 +34,40 @@ class UDPClient():
             print("Error! {}".format(socket.error))
             exit()
 
-def lru_cache(size):    
-    global LRU_CACHE
-    if not LRU_CACHE:
-        LRU_CACHE = LRUCache(size)
-
+def lru_cache_dec(size):    
+    LRU_CACHE = lru_cache(size)
 
     def decorator(func):
         @functools.wraps(func)
         def wrapper(*args, **kwargs):
-            if func.__name__ == 'delete':
-                print("==DELETE==")
-                LRU_CACHE.delete(args[0])
-                return func(*args, **kwargs)
-            
             cache = LRU_CACHE.get(args[0])
             if cache:
-                print('==HIT==')
+                # print('==HIT==')
                 print(cache)
                 return cache
             else:
-                print("==MISS==")
-
-                if func.__name__ == 'put':
-                    LRU_CACHE.add(args[0], args[1])
-                
-                return func(*args, **kwargs)
+                # print("==MISS==")
+                value = func(*args, **kwargs)
+                LRU_CACHE.add(args[0], value)
+                print(value)
+                return value
 
         return wrapper
     return decorator
 
-@lru_cache(5)
+@lru_cache_dec(5)
 def get(hc, udp_clients):
     if BLOOM_FILTER.is_member(hc):
         print(hc)
         data_bytes, key = serialize_GET(hc)
         fix_me_server_id = NODE_RING.get_node(key)
         response = udp_clients[fix_me_server_id].send(data_bytes)
-        print(response)
-    else:
-        print('===NO GET===')
+        return response
+        # print(response)
+    # else:
+        # print('===NO GET===')
 
-@lru_cache(5)
+# @lru_cache_dec(5)
 def put(key, data_bytes, udp_clients):
     global hash_codes
     fix_me_server_id = NODE_RING.get_node(key)
@@ -84,28 +76,35 @@ def put(key, data_bytes, udp_clients):
     print(response)
     BLOOM_FILTER.add(key)
 
-@lru_cache(5)
+# @lru_cache_dec(5)
 def delete(hc, udp_clients):
-    global hash_codes
+    # global hash_codes
     if BLOOM_FILTER.is_member(hc):
         print(hc)
         data_bytes, key = serialize_DELETE(hc)
         fix_me_server_id = NODE_RING.get_node(key)
         response = udp_clients[fix_me_server_id].send(data_bytes)
         print(response)
-    else:
-        print('===NO DELETE===')
+    # else:
+        # print('===NO DELETE===')
 
 
 def process(udp_clients):
     global hash_codes
+    # import pdb; pdb.set_trace()
     # print("====PUT====")
     for u in USERS:
         data_bytes, key = serialize_PUT(u)
         put(key, data_bytes, udp_clients)
 
-    print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
+    # print(f"Number of Users={len(USERS)}\nNumber of Users Cached={len(hash_codes)}")
     
+    # GET all users.
+    # import pdb; pdb.set_trace()
+    # print("====GET====")
+    for hc in hash_codes:
+        get(hc, udp_clients)
+
     # GET all users.
     # print("====GET====")
     for hc in hash_codes:
